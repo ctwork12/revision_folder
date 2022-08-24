@@ -1,11 +1,8 @@
 import gc
 
 import altair as alt
-import numpy as np
 import pandas as pd
-import plotly.express as px
 import streamlit as st
-from vega_datasets import data
 
 PAGE_CONFIG = {"page_title": "IRAP Data Revision",
                "page_icon": "chart_with_upwards_trend", "layout": "centered"}
