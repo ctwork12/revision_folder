@@ -1,11 +1,11 @@
 import gc
-
+import os
 import altair as alt
 import pandas as pd
 import streamlit as st
 
 PAGE_CONFIG = {"page_title": "IRAP Data Revision",
-               "page_icon": "chart_with_upwards_trend", "layout": "centered"}
+               "page_icon": "chart_with_upwards_trend", "layout": "wide"}
 
 st.set_page_config(**PAGE_CONFIG)
 
@@ -42,6 +42,15 @@ companyCodeoption = st.sidebar.selectbox("Company Code", companyCode)
 pdInputList = pdInput['RFID'].drop_duplicates().to_list()
 pdInputListoption = st.sidebar.selectbox("Risk Factor", pdInputList, index=9)
 
+button = st.sidebar.button("Validated")
+
+if button:
+    path = r"E:\instances\Irap_refersh_code\Data_Revision\data_revision\Result"
+    df = pd.DataFrame(list())
+    df.to_csv(os.path.join(path, 'starting.csv'), index=False)
+    st.sidebar.write("Status trigger file is generated")
+
+
 pdInputFiltered = pdInput.loc[(pdInput['CompanyName'] == companyCodeoption) & (pdInput['RFID'] == pdInputListoption)]
 pdInputFiltered = pdInputFiltered[['CompanyCode', 'DataDate', 'RFID', 'RFValue', 'RFPercentile']]
 
@@ -52,61 +61,21 @@ filteredPD = filteredPD[['CompanyCode', 'DataDate', 'Horizon', 'ForwardPoint', '
 filteredPD['DataDate'] =  pd.to_datetime(filteredPD['DataDate'])
 
 pdPlot = alt.Chart(filteredPD).mark_line(point=alt.OverlayMarkDef(color="blue")).encode(
-    x = 'DataDate',
-    y = 'PD',
+    x=alt.X('DataDate', axis=alt.Axis(title="", ticks=False, domain=False)),
+    y = alt.Y('PD', axis=alt.Axis(title='PD Individual')),
     tooltip=['DataDate', 'PD']
 ).configure_axis(
     grid=False
 ).properties(title = companyCodeoption).interactive()
 
-
 st.altair_chart(pdPlot, use_container_width=True)
 
 st.header("PD Input")
-st.dataframe(pdInputFiltered)
+st.dataframe(pdInputFiltered, width=1000)
 st.header("PD Individual")
-st.dataframe(filteredPD)
-
-
-#st.dataframe(mdf)
-
-# display = ("male", "female")
-
-# options = list(range(len(display)))
-
-# value = st.sidebar.selectbox("gender", options, format_func=lambda x: display[x])
-
-# st.write(value)
+st.dataframe(filteredPD,  width=1000)
 
 
 @st.cache
 def data_filter_process(options=companyCodeoption):
     pass
-
-
-# for i in df['CompanyCode'].drop_duplicates():
-#     pdInputCopy = pdInput.copy()
-    
-#     pdInputCopy = pdInputCopy.loc[(pdInputCopy['CompanyCode'] == i) & (pdInputCopy['RFID'] == "SIZE_LEVEL")]
-#     pdInputCopy = pdInputCopy.loc[pdInputCopy['DataDate'] == pdInputCopy['DataDate'].max()]
-
-
-#     filteredPD = df.loc[df['CompanyCode'] == i]
-#     filteredPD = filteredPD.loc[filteredPD['Horizon'] == '12M']
-#     filteredPD['PD'] = filteredPD['PD'] * 10000
-#     regionIndustry = pd.merge(filteredPD, unitLink, on='CompanyCode', how='left')
-#     companyName = pd.merge(regionIndustry, companyInfo, on='CompanyCode', how='left')
-#     sizeMerge = pd.merge(companyName, pdInputCopy, on='CompanyCode', how='left')
-#     title = sizeMerge[['CompanyName']].drop_duplicates()
-#     subtitle = sizeMerge['IndustryName'].drop_duplicates().to_string(header=False,index=False) + '_' +  sizeMerge['RegionName'].drop_duplicates().to_string(header=False,index=False) + '_' + sizeMerge['RFValue'].drop_duplicates().to_string(header=False,index=False)
-#     # fig = plt.figure(figsize=[16,12])
-#     # fig.patch.set_facecolor('white')
-#     # #plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
-#     # #plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=30))
-#     # plt.xticks(rotation = 45)
-#     # plt.title(title.to_string(header=False,index=False))
-#     # plt.suptitle(subtitle)
-#     # plt.plot(filteredPD['DataDate'], filteredPD['PD'])
-#     # plt.savefig(os.path.join(path, i))
-#     # plt.clf()
-
