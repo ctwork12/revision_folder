@@ -1,8 +1,10 @@
 import gc
 import os
+import numpy as np
 import altair as alt
 import pandas as pd
 import streamlit as st
+from datetime import datetime
 
 PAGE_CONFIG = {"page_title": "IRAP Data Revision",
                "page_icon": "chart_with_upwards_trend", "layout": "wide"}
@@ -14,7 +16,7 @@ st.title("Revision Data")
 
 FOLDER = ['IRAP_PUBLIC_AD','IRAP_PUBLIC_CN','IRAP_PUBLIC_EM','IRAP_PUBLIC_EU','IRAP_PUBLIC_IN','IRAP_PUBLIC_NA']
 
-option = st.sidebar.selectbox("Database Selection", FOLDER)
+option = st.sidebar.selectbox("Region Selection", FOLDER)
 
 # path = r'E:/instances/Irap_refersh_code/Data_Revision/data_revision/Result'
 # pdInput = pd.read_csv(r'E:/instances/Irap_refersh_code/Data_Revision/data_revision/Result/IRAP_PUBLIC_NA/PD_Input/PD_Input_ready.csv')
@@ -54,12 +56,22 @@ if button:
 pdInputFiltered = pdInput.loc[(pdInput['CompanyName'] == companyCodeoption) & (pdInput['RFID'] == pdInputListoption)]
 pdInputFiltered = pdInputFiltered[['CompanyCode', 'DataDate', 'RFID', 'RFValue', 'RFPercentile']]
 
-filteredPD = pdInd.loc[pdInd['CompanyName'] == companyCodeoption]
-filteredPD = filteredPD.loc[filteredPD['Horizon'] == '12M']
-filteredPD['PD'] = filteredPD['PD'] * 10000
-filteredPD = filteredPD[['CompanyCode', 'DataDate', 'Horizon', 'ForwardPoint', 'PD', 'AnnPD', 'UnconPD', 'AnnUnconPD']]
-filteredPD['DataDate'] =  pd.to_datetime(filteredPD['DataDate'])
 
+@st.cache
+def data_filter_process(dataframe, options=companyCodeoption):
+    filteredPD = dataframe.loc[dataframe['CompanyName'] == options]
+    filteredPD = filteredPD.loc[filteredPD['Horizon'] == '12M']
+    filteredPD['PD'] = filteredPD['PD'] * 10000
+    filteredPD = filteredPD[['CompanyCode', 'DataDate', 'Horizon', 'ForwardPoint', 'PD', 'AnnPD', 'UnconPD', 'AnnUnconPD']]
+    filteredPD['DataDate'] =  pd.to_datetime(filteredPD['DataDate'])
+    
+    return filteredPD
+
+
+filteredPD = data_filter_process(pdInd)
+
+
+# Plot
 pdPlot = alt.Chart(filteredPD).mark_line(point=alt.OverlayMarkDef(color="blue")).encode(
     x=alt.X('DataDate', axis=alt.Axis(title="", ticks=False, domain=False)),
     y = alt.Y('PD', axis=alt.Axis(title='PD Individual')),
@@ -68,14 +80,19 @@ pdPlot = alt.Chart(filteredPD).mark_line(point=alt.OverlayMarkDef(color="blue"))
     grid=False
 ).properties(title = companyCodeoption).interactive()
 
+st.header("Max PD Input by company")
+
+pdInput = pdInput.loc[pdInput['RFID'] == 'SIZE_LEVEL']
+maxPDInput = pdInput.sort_values('DataDate').groupby('CompanyCode').last().reset_index()
+
+
+st.table(maxPDInput[['CompanyCode','CompanyName','DataDate', 'RFValue']].sort_values('RFValue', ascending=False))
+
 st.altair_chart(pdPlot, use_container_width=True)
 
+
+# Dataframe
 st.header("PD Input")
-st.dataframe(pdInputFiltered, width=1000)
-st.header("PD Individual")
-st.dataframe(filteredPD,  width=1000)
+st.table(pdInputFiltered)
 
 
-@st.cache
-def data_filter_process(options=companyCodeoption):
-    pass
